@@ -1,0 +1,85 @@
+{
+    "$schema": "./schemas/rfbSchema.json",
+    "tractor_cfg": {
+        "engine": "tractor-engine",
+        "port": 80,
+        "user": ""
+    },    
+    "dirmaps": {
+    },
+    "woffs": [
+        "R90007"
+    ],
+    "ui_preferences": {
+        "render_runprograms": {
+            "default": false
+        },
+        "show_cycles_convert":{
+            "default": false
+        }
+    },
+    "editor_preferences": {
+        "preset_browser": {
+            "width": 750
+        },
+        "texture_manager": {
+            "width": 700
+        },
+        "workspace_editor": {
+            "width": 600
+        },
+        "lightmixer_editor": {
+            "width": 600
+        },
+        "lightlink_editor": {
+            "width": 900
+        },
+        "tracesets_editor": {
+            "width": 500
+        },
+        "stylizedlooks_editor": {
+            "width": 600
+        }
+    },      
+    "bxdf_viewport_color_mapping": {
+        "PxrDisney": {
+            "diffuse_color": ["baseColor"],
+            "specular_color": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "metallic": "metallic",
+            "roughness": "roughness"
+        },
+        "PxrDisneyBsdf": {
+            "diffuse_color": ["baseColor"],
+            "specular_color": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "metallic": "metallic",
+            "roughness": "roughness"
+        },        
+        "PxrSurface": {
+            "diffuse_color": ["diffuseColor"],
+            "specular_color": [
+                1.0,
+                1.0,
+                1.0
+            ]        
+        },
+        "PxrMarschnerHair": {
+            "diffuse_color": ["diffuseColor"],
+            "specular_color": ["specularColorR"]
+        },
+        "PxrVolume": {
+            "diffuse_color": ["diffuseColor"]
+        },
+        "LamaDiffuse": {
+            "diffuse_color": ["color"]
+        }                   
+    },
+    "user tokens": []  
+}

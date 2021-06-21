@@ -1,0 +1,14 @@
+{
+    "name": "PxrStylizedHatching.args",
+    "params": [
+        {
+            "name": "Notes",
+            "readOnly": true
+        },
+        {
+            "name": "hatchingTexType",
+            "always_write": true
+        }
+
+    ]
+}

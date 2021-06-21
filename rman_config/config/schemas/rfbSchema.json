@@ -1,0 +1,151 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "definitions": {
+        "dirmap": {
+            "type": "object",
+            "properties": {
+                "from": {
+                    "type": "string"
+                },
+                "to": {
+                    "type": "string"
+                },
+                "zone": {
+                    "type": "string",
+                    "enum": [
+                        "UNC",
+                        "NFS"
+                    ]
+                }
+            },
+            "required": [
+                "from",
+                "to",
+                "zone"
+            ]
+        },
+        "tractor_cfg": {
+            "type": "object",
+            "properties": {
+                "engine": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "number"
+                },
+                "user": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "engine",
+                "port"
+            ]
+        },
+        "bxdf_viewport_color_map": {
+            "type": "object",
+            "properties": {
+                "diffuse_color": {
+                    "type": "array",
+                    "items": {
+                        "type": ["string", "number"]
+                    }
+                },
+                "specular_color": {
+                    "type": "array",                  
+                    "items": {
+                        "type": ["string", "number"]
+                    }
+                },
+                "specular_intensity": {
+                    "type": ["string", "number"]
+                },
+                "metallic": {
+                    "type": ["string", "number"]
+                },
+                "roughness": {
+                    "type": ["string", "number"]
+                }                               
+            }
+        },
+        "editor_preference": {
+            "type": "object",
+            "properties": {
+                "width": {
+                    "type": "number"
+                }
+            }
+        },    
+        "preference": {
+            "type": "object",
+            "properties": {
+                "default": {
+                    "type": ["integer", "string", "array", "boolean"]
+                }
+            }
+        }
+    },
+    "type": "object",
+    "properties": {
+        "$schema": {
+            "description": "This is a validation schema for this file.\nSome editors can validate on the fly using this information.",
+            "type": "string"
+        },    
+        "woffs": {
+            "type": "array",
+            "description": "A list of Xcpt codes that will be removed from logging.",
+            "items": {
+                "type": "string"
+            }
+        },
+        "user tokens": {
+            "type": "array",
+            "description": "A list of dicts containing a token name and a value.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "value": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "dirmaps": {
+            "type": "object",
+            "patternProperties": {
+                "[A-Za-z0-9_-]+": {
+                    "$ref": "#/definitions/dirmap"
+                }
+            }
+        },
+        "bxdf_viewport_color_mapping": {
+            "type": "object",
+            "patternProperties": {
+                "[A-Za-z0-9_-]+": {
+                    "$ref": "#/definitions/bxdf_viewport_color_map"
+                }
+            }
+        },
+        "editor_preferences": {
+            "type": "object",
+            "patternProperties": {
+                "[A-Za-z0-9_-]+": {
+                    "$ref": "#/definitions/editor_preference"
+                }
+            }
+        },
+        "ui_preferences": {
+            "type": "object",
+            "patternProperties": {
+                "[A-Za-z0-9_-]+": {
+                    "$ref": "#/definitions/preference"
+                }
+            }
+        },
+        "tractor_cfg": {"$ref": "#/definitions/tractor_cfg" }       
+    },
+    "additionalProperties": false
+}

@@ -1,0 +1,12 @@
+{
+    "name": "rman_properties_scene",
+    "params": [
+        {
+            "name": "motion_blur",
+            "label": "Motion Blur (Blurry!)",
+            "type": "int",
+            "default": 1,
+            "help": "Motion blur is now on by default!"
+        } 
+    ]
+}

@@ -1,0 +1,16 @@
+{
+    "name": "rman_properties_material",
+    "params": [
+        {
+            "panel": "MATERIAL_PT_renderman_shader_surface",            
+            "name": "preview_render_type",
+            "label": "Preview Render Type",
+            "type": "string",
+            "default": "SPHERE",
+            "widget": "mapper",
+            "options": "Sphere:SPHERE|Cube:CUBE",
+            "page": "",
+            "help": "Object to display in material preview"
+        }
+    ]
+}

@@ -1,0 +1,18 @@
+{
+    "name": "rman_properties_object",
+    "params": [
+        {
+            "panel": "OBJECT_PT_renderman_object_custom_primvars",
+            "name": "user_mycolor",
+            "label": "MyColor",
+            "primvar": "user:mycolor",
+            "type": "color",
+            "default": [
+                1,
+                1,
+                1
+            ],
+            "help": "This is a new user primitive variable called mycolor"
+        }        
+    ]
+}

@@ -1,0 +1,1282 @@
+{
+    "name": "rman_properties_scene",
+    "params": [
+        {
+            "panel": "",
+            "page": "",
+            "name": "hider_type",
+            "label": "Hider Type",
+            "type": "string",
+            "default": "RAYTRACE",
+            "widget": "mapper",
+            "options": "BAKE:BAKE|BAKE_BRICKMAP_SELECTED:BAKE_BRICKMAP_SELECTED|RAYTRACE:RAYTRACE",            
+            "help": "(hidden) Choose hider type."
+        },  
+        {
+            "panel": "",
+            "page": "",
+            "name": "enable_external_rendering",
+            "label": "Enable External Rendering",
+            "type": "int",
+            "default": 0,
+            "widget": "checkbox",
+            "help": "(hidden) Enable external RIB rendering"
+        },    
+        {
+            "panel": "RENDER_PT_renderman_render",
+            "page": "",
+            "name": "render_into",
+            "label": "Render to",
+            "type": "string",
+            "default": "blender",
+            "widget": "mapper",
+            "options": "Blender:blender|it:it",    
+            "help": "Controls where preview and IPR renders will go to."
+        }, 
+        {
+            "panel": "RENDER_PT_renderman_render",
+            "page": "",
+            "name": "blender_optix_denoiser",
+            "label": "Use Optix Denoiser",
+            "type": "int",
+            "default": 0,
+            "widget": "checkbox",
+            "help": "Denoise with OptiX denoiser",
+            "update_function_name": "update_blender_optix_denoiser",
+            "update_function": "def update_blender_optix_denoiser(self, context):\n    from ..rman_render import RmanRender\n    rr = RmanRender.get_rman_render()\n    rr.rman_scene_sync.update_displays(context)",
+            "conditionalVisOps": {
+                "conditionalVis1Path": "render_into",
+                "conditionalVis2Op": "notEqualTo",
+                "conditionalVis1Value": "blender",
+                "conditionalVisOp": "and",
+                "conditionalVis1Op": "equalTo",
+                "conditionalVisLeft": "conditionalVis1",
+                "conditionalVisRight": "conditionalVis2",
+                "conditionalVis2Path": "current_platform",
+                "conditionalVis2Value": "macOS"     
+            }             
+        },         
+        {
+            "panel": "RENDER_PT_renderman_render",
+            "page": "",
+            "name": "renderVariant",
+            "label": "Renderer",
+            "type": "string",
+            "default": "prman",
+            "widget": "popup",
+            "options": "RIS:prman|XPU:xpu",
+            "help": "",
+            "conditionalLockOps": {
+                "conditionalVis1Path": "has_xpu_license",
+                "conditionalVis2Op": "notEqualTo",
+                "conditionalVis1Value": "1",
+                "conditionalVisOp": "and",
+                "conditionalVis1Op": "equalTo",
+                "conditionalVisLeft": "conditionalVis1",
+                "conditionalVisRight": "conditionalVis2",
+                "conditionalVis2Path": "current_platform",
+                "conditionalVis2Value": "macOS"     
+            }              
+        },       
+        {
+            "panel": "",
+            "page": "",
+            "name": "render_rman_stylized",
+            "label": "Stylized Render",
+            "type": "int",
+            "default": 0,
+            "widget": "checkbox",
+            "update_function_name": "update_render_rman_stylized",
+            "update_function": "def update_render_rman_stylized(self, context):\n    from ..rman_render import RmanRender\n    rr = RmanRender.get_rman_render()\n    rr.rman_scene_sync.update_displays(context)\n    context.scene.world.update_tag()",
+            "help": "Render with RenderMan Stylized looks. Note, this simply adds the necessary AOVs to render with stylized looks. Both the stylized display filters need to be added to the scene, and a stylized pattern node needs to be added to an objects's material network."
+        },          
+        {
+            "panel": "RENDER_PT_renderman_render",
+            "page": "",
+            "name": "render_default_light",
+            "label": "Default Light",
+            "type": "int",
+            "default": 1,
+            "widget": "checkbox",
+            "help": "Render with a default head light, if there are no lights in the scene."
+        },                                                  
+        {
+            "panel": "RENDER_PT_renderman_render",
+            "page": "",
+            "name": "do_holdout_matte",
+            "label": "Render Holdouts",
+            "type": "string",
+            "default": "OFF",
+            "widget": "mapper",
+            "options": "Off:OFF|In Alpha:ALPHA|Separate AOV:AOV",    
+            "help": "Render a holdout matte."
+
+        },          
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "page": "IPR Sampling",
+            "name": "ipr_hider_minSamples",
+            "riopt": "hider:minsamples",
+            "label": "Min Samples",
+            "type": "int",
+            "default": 0,
+            "min": 0,
+            "max": 65536,
+            "widget": false,
+            "slidermin": 0,
+            "slidermax": 4096,
+            "editable": true,
+            "update_function_name": "update_options_func",
+            "help": "When set to zero this value is automatically computed as the square root of the max samples."
+        },
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "page": "IPR Sampling",
+            "name": "ipr_hider_maxSamples",
+            "riopt": "hider:maxsamples",
+            "label": "Max Samples",
+            "type": "int",
+            "default": 64,
+            "min": 0,
+            "max": 65535,
+            "widget": false,
+            "slidermin": 0,
+            "slidermax": 4096,
+            "presets": {
+                "Fast": 256,
+                "Production": 1024,
+                "High Quality": 2048
+            },
+            "editable": true,
+            "update_function_name": "update_options_func",            
+            "help": "The maximum number of camera rays to be traced for each pixel.  When adaptive sampling is enabled (ie. Pixel Variance is greater than zero), fewer rays may be traced in smoother regions of the image."
+        },                
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "page": "IPR Sampling",
+            "name": "ipr_ri_pixelVariance",
+            "riopt": "Ri:PixelVariance",
+            "label": "Pixel Variance",
+            "type": "float",
+            "default": 0.015,
+            "min": 0.0,
+            "max": 0.5,
+            "digits": 5,
+            "connectable": false,
+            "presets": {
+                "Test": 0.15,
+                "Denoising": 0.05,
+                "High Quality": 0.01
+            },
+            "editable": true,
+            "update_function_name": "update_options_func",               
+            "help": "This value is applied during IPR.  Adaptive sampling is done when Pixel Variance is greater than zero. Reducing this value increases the likelihood that more rays will be traced while increasing its value allows undersampling."
+        },
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "page": "IPR Sampling",
+            "name": "hider_decidither",
+            "riopt": "hider:decidither",
+            "label": "Interactive Refinement",
+            "type": "int",
+            "default": 0,
+            "min": 0,
+            "max": 6,
+            "widget": false,
+            "editable": true,
+            "update_function_name": "update_options_func",
+            "help": "This value is only applied during IPR. The value determines how much refinement (in a dither pattern) will be applied to the image during interactive rendering. 0 means full refinement up to a value of 6 which is the least refinement per iteration."
+        },        
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "page": "IPR Sampling",
+            "name": "viewport_render_res_mult",
+            "label": "Render Resolution Multiplier",
+            "type": "float",
+            "default": 1.0,
+            "min": 0.125,
+            "max": 1.0,
+            "widget": "mapper",
+            "options": "100%:1.0|50%:0.5|33%:0.33|25%:0.25|12.5%:0.125",
+            "help": "This value is only applied during IPR. This scales down the resolution during viewport renders.",
+            "editable": true,
+            "update_function_name": "update_viewport_res_mult",
+            "update_function": "def update_viewport_res_mult(self, context):\n    from ..rman_render import RmanRender\n    rr = RmanRender.get_rman_render()\n    rr.rman_scene_sync.update_viewport_res_mult(context)",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "render_into",
+                "conditionalVisValue": "blender"
+            }               
+        },
+        {
+            "panel": "RENDER_PT_renderman_render",
+            "page": "Threads Control",
+            "name": "threads",
+            "riopt": "threads",
+            "label": "Render Threads",
+            "type": "int",
+            "default": -2,
+            "min": -32,
+            "max": 32,
+            "help": "The number of preview or IPR rendering threads. A negative number means to use all but n processors."
+        }, 
+        {
+            "panel": "RENDER_PT_renderman_render",
+            "page": "Threads Control",
+            "name": "batch_threads",
+            "riopt": "threads",
+            "label": "Batch Threads",
+            "type": "int",
+            "default": 0,
+            "min": -32,
+            "max": 32,
+            "help": "The number of threads for batch renders.  A negative number means to use all but n processors, and zero means all processors."
+
+        },   
+        {
+            "panel": "RENDER_PT_renderman_baking",
+            "page": "",
+            "name": "rman_bake_mode",
+            "label": "Bake Mode",
+            "type": "string",
+            "widget": "mapper",
+            "options": "Pattern:pattern|Illumination:integrator|All:ALL",            
+            "default": "pattern",            
+            "help": "Baking mode. For Patterns, this requires a PxrBakeTexture or PxrBakePointCloud somewhere in your shading network."
+        },      
+        {
+            "panel": "RENDER_PT_renderman_baking",
+            "page": "Illumination",
+            "page_open": true,
+            "name": "rman_bake_illum_mode",
+            "label": "Baking Illumination Mode",
+            "type": "string",
+            "default": "3D",
+            "widget": "mapper",
+            "options": "3D:3D|2D:2D",
+            "help": "Choose between 3D or 2D baking.",
+            "conditionalVisOps": {
+                "conditionalVisOp": "notEqualTo",
+                "conditionalVisPath": "rman_bake_mode",
+                "conditionalVisValue": "pattern"
+            }            
+        },                
+        {
+            "panel": "RENDER_PT_renderman_baking",
+            "page": "Illumination",
+            "name": "rman_bake_illlum_density",
+            "label": "Density",
+            "type": "float",
+            "default": 0.02,
+            "min": 0.0001,
+            "max": 100.0,
+            "help": "The dicing rate for 3D baking. Lower numbers will create denser pointcloud files.",
+            "conditionalVisOps": {
+                "conditionalVisOp": "notEqualTo",
+                "conditionalVisPath": "rman_bake_mode",
+                "conditionalVisValue": "pattern"
+            }            
+        },    
+        {
+            "panel": "RENDER_PT_renderman_baking",
+            "page": "Illumination",
+            "name": "rman_bake_illlum_res",
+            "label": "Resolution",
+            "type": "int",
+            "default": 512,
+            "widget": "mapper",
+            "options": "128:128|256:256|512:512|1024:1024|2048:2048",
+            "help": "Resolution for 2D baking. Should be in powers of 2",
+            "conditionalVisOps": {
+                "conditionalVisOp": "notEqualTo",
+                "conditionalVisPath": "rman_bake_mode", 
+                "conditionalVisValue": "pattern"
+            }            
+        },                 
+        {
+            "panel": "RENDER_PT_renderman_baking",
+            "page": "Illumination",
+            "name": "rman_bake_illum_filename",
+            "label": "Filename Pattern",
+            "type": "string",
+            "widget": "mapper",
+            "options": "Global:GLOBAL|Identifier:IDENTIFIER|Filename Attribute:BAKEFILEATTR",
+            "default": "GLOBAL",  
+            "help": "Filename pattern. Global will use one file for all objects. Identifier will bake each object into their own file. Filename Attribute will bake to the file specified in the Bake Filename Attribute on the object.",
+            "conditionalVisOps": {
+                "conditionalVisOp": "notEqualTo",
+                "conditionalVisPath": "rman_bake_mode",
+                "conditionalVisValue": "pattern"
+            } 
+        }, 
+        {
+            "panel": "RENDER_PT_renderman_baking",
+            "page": "Illumination",
+            "name": "rman_bake_illum_primvarS",
+            "label": "Primvar S",
+            "type": "string",
+            "default": "s",  
+            "help": "Texture coordinate primvar to use for the s direction",
+            "conditionalVisOps": {
+                "conditionalVisOp": "notEqualTo",
+                "conditionalVisPath": "rman_bake_mode",
+                "conditionalVisValue": "pattern"
+            } 
+        },
+        {
+            "panel": "RENDER_PT_renderman_baking",
+            "page": "Illumination",
+            "name": "rman_bake_illum_primvarT",
+            "label": "Primvar T",
+            "type": "string",
+            "default": "t",  
+            "help": "Texture coordinate primvar to use for the t direction",
+            "conditionalVisOps": {
+                "conditionalVisOp": "notEqualTo",
+                "conditionalVisPath": "rman_bake_mode",
+                "conditionalVisValue": "pattern"
+            } 
+        },   
+        {
+            "panel": "RENDER_PT_renderman_baking",
+            "page": "Illumination",
+            "name": "rman_bake_illum_invertT",
+            "label": "Invert T",
+            "type": "int",
+            "widget": "checkbox",
+            "default": 1,  
+            "help": "Invert the t direction texture coordinate",
+            "conditionalVisOps": {
+                "conditionalVisOp": "notEqualTo",
+                "conditionalVisPath": "rman_bake_mode",
+                "conditionalVisValue": "pattern"
+            } 
+        },                                                  
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "page": "",
+            "name": "hider_minSamples",
+            "riopt": "hider:minsamples",
+            "label": "Min Samples",
+            "type": "int",
+            "default": 0,
+            "min": 0,
+            "max": 65536,
+            "widget": false,
+            "slidermin": 0,
+            "slidermax": 4096,
+            "help": "When set to zero this value is automatically computed as the square root of the max samples."
+        },
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "name": "hider_maxSamples",
+            "riopt": "hider:maxsamples",
+            "label": "Max Samples",
+            "type": "int",
+            "default": 128,
+            "min": 0,
+            "max": 65535,
+            "widget": false,
+            "slidermin": 0,
+            "slidermax": 4096,
+            "presets": {
+                "Fast": 256,
+                "Production": 1024,
+                "High Quality": 2048
+            },
+            "help": "The maximum number of camera rays to be traced for each pixel.  When adaptive sampling is enabled (ie. Pixel Variance is greater than zero), fewer rays may be traced in smoother regions of the image."
+        },  
+        {
+            "panel": "RENDER_PT_renderman_sampling",            
+            "name": "hider_pixelFilterMode",
+            "riopt": "hider:pixelfiltermode",
+            "label": "Filter Mode",
+            "type": "string",
+            "widget": "popup",
+            "default": "importance",
+            "options": "weighted|importance",
+            "connectable": false,
+            "help": "Weighted mode converges faster (because it smoothes variance) but importance MUST be used if the image will be denoised. NOTE: importance will automatically be selected if you enable denoising in the AOV tab of the Globals."
+        },        
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "page": "",
+            "name": "adaptiveMetric",
+            "riopt": "hider:adaptivemetric",
+            "label": "Adaptive Metric",
+            "type": "string",
+            "default": "variance",
+            "widget": "popup",
+            "options": "contrast|variance|halfbuffer",
+            "help": "Selects the metric used by the adaptive sampler. contrast: New version of the original metric used before RenderMan 24. variance: New perceptual variance metric (default). halfbuffer: Half-buffer metric introduced in RenderMan 22. When changing from variance to contrast, it is recommended that the PixelVariance be lowered.  eg. The default production level PixelVariance for the variance metric is 0.015, but for contrast it should be 0.005",
+            "update_function_name": "update_adaptiveMetric",
+            "update_function": "def update_adaptiveMetric(self, context):\n    if self.adaptiveMetric=='contrast':\n        self.ri_pixelVariance=0.005\n    elif self.adaptiveMetric=='variance':\n        self.ri_pixelVariance=0.015\n    elif self.adaptiveMetric=='halfbuffer':\n        self.ri_pixelVariance=0.02"
+        },              
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "name": "ri_pixelVariance",
+            "riopt": "Ri:PixelVariance",
+            "label": "Pixel Variance",
+            "type": "float",
+            "default": 0.015,
+            "min": 0.0,
+            "max": 0.5,
+            "digits": 5,
+            "connectable": false,
+            "presets": {
+                "Test": 0.15,
+                "Denoising": 0.05,
+                "High Quality": 0.01
+            },
+            "help": "Adaptive sampling is done when Pixel Variance is greater than zero. Reducing this value increases the likelihood that more rays will be traced while increasing its value allows undersampling."
+        },
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "name": "hider_darkfalloff",
+            "riopt": "hider:darkfalloff",
+            "label": "Dark Falloff",
+            "type": "float",
+            "default": 0.025,
+            "min": 0.0,
+            "max": 1.0,
+            "digits": 5,
+            "connectable": false,
+            "help": "De-prioritize low luminance samples in the adaptive sampler. Use this parameter to avoid oversampling dark areas while maintaining overall image quality. Higher values cull more samples, speeding up render time while increasing noise in darker areas."
+        },       
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "name": "opt_exposurebracket",
+            "riopt": "hider:exposurebracket",
+            "label": "Exposure Bracket",
+            "type": "float2",
+            "default": [
+                -1.0,
+                1.0
+            ],
+            "widget": false,
+            "help": "Intended exposure Bracket [min max] in post-production to help inform the adaptive sampling."
+        },                            
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "name": "hider_incremental",
+            "riopt": "hider:incremental",
+            "label": "Incremental",
+            "type": "int",
+            "default": 1,
+            "widget": "checkbox",
+            "help": "Incremental mode means the renderer visits every pixel in the image, computing a single sample for each, then does the same for a second sample, etc.  In non-incremental mode, the renderer visits each pixel once and computes all the samples in one go."
+        },
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "page": "Global Trace Settings",
+            "name": "ri_maxSpecularDepth",
+            "riattr": "trace:maxspeculardepth",
+            "label": "Max Specular Depth",
+            "type": "int",
+            "editable": true,
+            "update_function_name": "update_root_node_func",               
+            "default": 4,
+            "min": 0,
+            "slidermax": 15
+        },
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "page": "Global Trace Settings",
+            "name": "ri_maxDiffuseDepth",
+            "riattr": "trace:maxdiffusedepth",
+            "label": "Max Diffuse Depth",
+            "type": "int",
+            "editable": true,
+            "update_function_name": "update_root_node_func",               
+            "default": 1,
+            "min": 0,
+            "slidermax": 15
+        },     
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "page": "Global Trace Settings",
+            "name": "rman_micropolygonlength",
+            "primvar": "dice:micropolygonlength",
+            "label": "MicroPolygon Length",
+            "type": "float",
+            "default": 1.0,
+            "help": "Micropolygon distance in raster space for 'instanceprojection' dicing. Values are expressed in pixel size."
+        },
+
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "name": "rman_autoBias",
+            "primvar": "trace:autobias",
+            "label": "Auto Bias",
+            "type": "int",
+            "default": 1,
+            "widget": "mapper",
+            "options": "Yes:1|No:0",
+            "page": "Global Trace Settings"
+        },
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "name": "rman_traceBias",
+            "primvar": "trace:bias",
+            "label": "Trace Bias",
+            "type": "float",
+            "default": 0.01,
+            "page": "Global Trace Settings",
+            "conditionalVisOps": {
+                "conditionalVisOp": "notEqualTo",
+                "conditionalVisPath": "rman_autoBias",
+                "conditionalVisValue": 1
+            }
+        },  
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "name": "rman_traceSssAutoBias",
+            "primvar": "trace:sssautobias",
+            "label": "Auto Bias Subsurface Scattering",
+            "type": "int",
+            "default": 1,
+            "widget": "mapper",   
+            "page": "Global Trace Settings",            
+            "help": "Enable automatic raytrace bias for subsurface scattering rays.",      
+            "options": "Yes:1|No:0"        
+        },    
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "name": "rman_traceSssBias",
+            "primvar": "trace:sssbias",
+            "label": "Subsurface Trace Bias",
+            "type": "float",
+            "default": 0.0001,
+            "page": "Global Trace Settings",
+            "help": "Manual raytrace bias (in object space) for subsurface scattering rays. Small values should be used to avoid artifacts such as surface acne.",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "rman_traceSssAutoBias",
+                "conditionalVisValue": 1
+            }
+        },
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "name": "rman_shadowBumpTerminator",
+            "primvar": "shade:shadowBumpTerminator",
+            "label": "Shadow Bump Terminator",
+            "type": "int",
+            "default": 1,
+            "page": "Global Trace Settings",
+            "widget": "checkbox",
+            "help": "Setting to control whether bump shadow terminators are smoothed in non-hair bxdfs."
+        },
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "name": "rman_geomShadowTermBias",
+            "primvar": "hider:geomShadowTermBias",
+            "label": "Geometric Shadow Terminator",
+            "type": "int",
+            "default": 1,
+            "page": "Global Trace Settings",
+            "widget": "checkbox",
+            "help": "This setting will control when to compute and apply a bias to Poly Meshes to avoid the geometric shadow terminator artifacts that appear for shading points when they are visible from a light wrt their shading normal, but not visible wrt their geometric normal. The default value is 1 (on). Set to 0 (off) if you don't want this bias to be applied to the Poly Meshes in your scene."
+        },                                           
+        {
+            "panel": "RENDER_PT_renderman_motion_blur",
+            "name": "motion_blur",
+            "label": "Motion Blur",
+            "type": "int",
+            "default": 0,
+            "widget": "checkbox",
+            "help": "Enable motion blur"
+        },
+        {
+            "panel": "RENDER_PT_renderman_motion_blur",
+            "name": "sample_motion_blur",
+            "label": "Sample Motion Blur",
+            "riopt": "hider:samplemotion",
+            "type": "int",
+            "default": 1,
+            "widget": "checkbox",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "motion_blur",
+                "conditionalVisValue": "1"
+            },
+            "help": "Determines if motion blur is rendered in the final image.  If this is disabled the motion vectors are still calculated and can be exported with the dPdTime AOV.  This allows motion blur to be added as a post process effect"
+        },        
+        {
+            "panel": "RENDER_PT_renderman_motion_blur",
+            "name": "motion_segments",
+            "label": "Motion Samples",
+            "type": "int",
+            "default": 2,
+            "min": 2,
+            "max":16,
+            "widget": false,
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "motion_blur",
+                "conditionalVisValue": "1"
+            },            
+            "help": "Enable motion blur"
+        },
+        {
+            "panel": "RENDER_PT_renderman_motion_blur",
+            "name": "shutter_angle",
+            "label": "Shutter Angle",
+            "type": "float",
+            "default": 180.0,
+            "min": 0.0,
+            "max":360.0,
+            "widget": false,
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "motion_blur",
+                "conditionalVisValue": "1"
+            },          
+            "help": "Fraction of time that the shutter is open (360 is one full second).  180 is typical for North America 24fps cameras, 172.8 is typical in Europe"
+        },
+        {
+            "panel": "RENDER_PT_renderman_motion_blur",
+            "name": "shutter_timing",
+            "label": "Shutter Timing",
+            "type": "string",
+            "default": "FRAME_CENTER",
+            "widget": "mapper",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "motion_blur",
+                "conditionalVisValue": "1"
+            },           
+            "options": "Start on Frame:FRAME_OPEN|Center on Frame:FRAME_CENTER|End on Frame:FRAME_CLOSE",
+            "help": "Controls when the shutter opens for a given frame.\n\n Center on Frame - the shutter opens before the frame, and closes after, centered on the frame.\nStart on Frame - shutter opens at the start of the frame\nEnd on Frame - the shutter closes on the frame.\n "
+        },        
+        {
+            "panel": "RENDER_PT_renderman_motion_blur",
+            "name": "shutter_open",
+            "label": "Shutter Open",
+            "type": "float",
+            "default": 0.0,
+            "min": 0.0,
+            "max": 1.0,
+            "widget": false,
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "motion_blur",
+                "conditionalVisValue": "1"
+            },           
+            "help": "Controls the speed of the shutter opening.  0 means instantaneous, > 0 is a gradual opening"
+        }, 
+        {
+            "panel": "RENDER_PT_renderman_motion_blur",
+            "name": "shutter_close",
+            "label": "Shutter Close",
+            "type": "float",
+            "default": 1.0,
+            "min": 0.0,
+            "max": 1.0,
+            "widget": false,
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "motion_blur",
+                "conditionalVisValue": "1"
+            },  
+            "help": "Controls the speed of the shutter closing. 1 means instantaneous, < 1 is a gradual closing"
+        },               
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "name": "learnLightSelection",
+            "riopt": "lighting:selectionlearningscheme",
+            "label": "Learn Light Results",
+            "type": "int",
+            "default": 1,
+            "widget": "checkbox",
+            "help": "Experimental scheme to use earlier lighting results to drive selection of lights in later iterations."
+        }, 
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "name": "shade_roughnessmollification",
+            "riopt": "shade:roughnessmollification",
+            "label": "Specular Roughness Mollification",
+            "type": "float",
+            "default": 1.0,
+            "min": 0.0,
+            "max": 1.0, 
+            "help": "Specular Roughness Mollification. This selectively increases material roughness on secondary bounces after diffuse or broad glossy reflections and on highly curved surfaces. This reduces noise and fireflies, but can also make caustics blurrier or disappear entirely. Set this value to 0.0 when you want to render ground-truth caustics.  The default value is 1.0."
+        },                 
+        {
+            "panel": "RENDER_PT_renderman_sampling",            
+            "page": "Filter",
+            "name": "ri_displayFilter",
+            "riopt": "Ri:PixelFilterName",
+            "label": "Filter",
+            "type": "string",
+            "default": "gaussian",
+            "widget": "popup",
+            "options": "box|triangle|catmull-rom|sinc|gaussian|mitchell|separable-catmull-rom|blackman-harris|lanczos|bessel|disk"
+        },
+        {
+            "panel": "RENDER_PT_renderman_sampling",                        
+            "page": "Filter",
+            "name": "ri_displayFilterSize",
+            "riopt": "Ri:PixelFilterWidth",
+            "label": "Filter Size",
+            "type": "float2",
+            "default": [
+                2,
+                2
+            ],
+            "connectable": false
+        },
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "page": "Checkpointing",
+            "name": "enable_checkpoint",
+            "label": "Enable Checkpointing",
+            "type": "int",
+            "default": 0,
+            "widget": "checkbox",
+            "help": "Allows partial images to be output at specific intervals while the renderer continued to run.  The user may also set a point at which the render will terminate"
+        },
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "page": "Checkpointing",
+            "name": "checkpoint_asfinal",
+            "label": "Final Image as Checkpoint",
+            "type": "int",
+            "default": 0,
+            "widget": "checkbox",
+            "help": "Saves the final image as a checkpoint.  This allows you to resume it after raising the sample count",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "enable_checkpoint",
+                "conditionalVisValue": "1"
+            }              
+        },      
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "page": "Checkpointing",
+            "name": "checkpoint_interval",
+            "label": "Interval",
+            "type": "string",
+            "default": "",
+            "widget": false,           
+            "help": "Write framebuffers to disk every N progressive steps. Can be a sequence of intervals. Values can take strings to denote the unit to consider. 'i' for Iterations; 's' for Seconds; 'm' for Minutes; 'h' for Hours; 'd' for Days. Ex: 10s 10i 1d",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "enable_checkpoint",
+                "conditionalVisValue": "1"
+            }              
+        },             
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "page": "Checkpointing",
+            "name": "checkpoint_exitat",
+            "label": "Exit At",
+            "type": "string",
+            "default": "",
+            "widget": false,           
+            "help": "The maximum interval that will be reached before the render terminates.  0 will disable this option.",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "enable_checkpoint",
+                "conditionalVisValue": "1"
+            }              
+        },          
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "name": "opt_bucket_order",
+            "riopt": "bucket:order",
+            "label": "Bucket Order",
+            "type": "string",
+            "default": "circle",
+            "widget": "popup",
+            "options": "horizontal|vertical|zigzag-x|zigzag-y|spiral|spacefill|circle"
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "name": "opt_bucket_sprial_x",
+            "label": "X",
+            "type": "int",
+            "default": -1,
+            "min": -1,
+            "widget": false,
+            "help": "X coordinate of bucket spiral start",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "opt_bucket_order",
+                "conditionalVisValue": "spiral"
+            }              
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "name": "opt_bucket_sprial_y",
+            "label": "Y",
+            "type": "int",
+            "default": -1,
+            "min": -1,
+            "widget": false,
+            "help": "Y coordinate of bucket spiral start",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "opt_bucket_order",
+                "conditionalVisValue": "spiral"
+            }              
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "Open Shading Language",
+            "name": "opt_oslSIMDEnable",
+            "label": "Enable Batched OSL",
+            "riopt": "osl:batched",
+            "type": "int",
+            "default": 1,
+            "widget": "checkBox",
+            "help": "Enable OSL optimizations that allow execution of multiple shading points via vectorized instructions on supported processors (AVX, AVX2, AVX512)."
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "Open Shading Language",
+            "name": "opt_oslVerbosity",
+            "label": "OSL Verbosity",
+            "riopt": "osl:verbose",
+            "type": "int",
+            "default": 0,
+            "widget": "mapper",
+            "options": "0 - Silent:0|1 - Severe:1|2 - Error:2|3 - Message:3|4 - Warning:4|5 - Info:5",
+            "help": "Enable OSL diagnostic output of increasing verbosity."
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "Open Shading Language",
+            "name": "opt_oslStatistics",
+            "label": "OSL Statistics Level",
+            "riopt": "osl:statisticslevel",
+            "type": "int",
+            "default": 0,
+            "min": 0,
+            "max": 5,
+            "help": "Enable OSL statistics output at a given level."
+        },        
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "Cache Sizes",
+            "name": "limits_texturememory",
+            "riopt": "limits:texturememory",
+            "label": "Texture",
+            "type": "int",
+            "default": 2097152,
+            "min": 0,
+            "widget": false,
+            "help": "Texture cache size in kB"
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "Cache Sizes",
+            "name": "limits_geocachememory",
+            "riopt": "limits:geocachememory",
+            "label": "Geometry",
+            "type": "int",            
+            "default": 2097152,
+            "min": 0,            
+            "widget": false,
+            "help": "Geometry cache size in kB."
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "Cache Sizes",
+            "name": "limits_opacitycachememory",
+            "riopt": "limits:opacitycachememory",
+            "label": "Opacity",
+            "type": "int",
+            "default": 1048576,
+            "min": 0,            
+            "widget": false,
+            "help": "Opacity cache in kB"
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "",
+            "name": "use_metadata",
+            "label": "Use Metadata",
+            "type": "int",
+            "default": 1,
+            "widget": "checkbox",
+            "help": "The output file will contain extra image metadata that can aid with production workflows. Information includes camera (focallength, fstop, sensor size and focal distance), version (Blender and RfB), username, blender scene path, statistic xml path and integrator settings."
+        },  
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "",
+            "name": "custom_metadata",
+            "label": "Metadata Comment",
+            "type": "string",
+            "default": "",
+            "help": "Add a custom comment to the EXR Metadata.",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "use_metadata",
+                "conditionalVisValue": "1"
+            }                       
+        },                        
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "",
+            "name": "use_statistics",
+            "riopt": "statistics:level",
+            "label": "Enable Statistics",
+            "type": "int",
+            "default": 0,
+            "widget": "checkbox",
+            "help": "Enable writing an XML statistics file. The location for the XML file can be specified in the workspace editor."
+        },      
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_diffuse2",
+            "riopt": "lpe:diffuse2",
+            "label": "Diffuse 2 Lobe ID",
+            "type": "string",
+            "default": "Diffuse,HairDiffuse,diffuse,translucent,hair4,irradiance",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_diffuse3",
+            "riopt": "lpe:diffuse3",
+            "label": "Diffuse 3 Lobe ID",
+            "type": "string",
+            "default": "Subsurface,subsurface",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_specular2",
+            "riopt": "lpe:specular2",
+            "label": "Specular 2 Lobe ID",
+            "type": "string",
+            "default": "Specular,HairSpecularR,specular,hair1",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_specular3",
+            "riopt": "lpe:specular3",
+            "label": "Specular 3 Lobe ID",
+            "type": "string",
+            "default": "RoughSpecular,HairSpecularTRT,hair3",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_specular4",
+            "riopt": "lpe:specular4",
+            "label": "Specular 4 Lobe ID",
+            "type": "string",
+            "default": "Clearcoat",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_specular5",
+            "riopt": "lpe:specular5",
+            "label": "Specular 5 Lobe ID",
+            "type": "string",
+            "default": "Iridescence",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_specular6",
+            "riopt": "lpe:specular6",
+            "label": "Specular 6 Lobe ID",
+            "type": "string",
+            "default": "Fuzz,HairSpecularGLINTS",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_specular7",
+            "riopt": "lpe:specular7",
+            "label": "Specular 7 Lobe ID",
+            "type": "string",
+            "default": "SingleScatter,HairSpecularTT,hair2",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_specular8",
+            "riopt": "lpe:specular8",
+            "label": "Specular 8 Lobe ID",
+            "type": "string",
+            "default": "Glass,specular",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_user2",
+            "riopt": "lpe:user2",
+            "label": "User 2 Lobe ID",
+            "type": "string",
+            "default": "Albedo,DiffuseAlbedo,SubsurfaceAlbedo,HairAlbedo",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_user3",
+            "riopt": "lpe:user3",
+            "label": "User 3 Lobe ID",
+            "type": "string",
+            "default": "",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_user4",
+            "riopt": "lpe:user4",
+            "label": "User 4 Lobe ID",
+            "type": "string",
+            "default": "",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",          
+            "name": "lpe_user5",
+            "riopt": "lpe:user5",
+            "label": "User 5 Lobe ID",
+            "type": "string",
+            "default": "",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_user6",
+            "riopt": "lpe:user6",
+            "label": "User 6 Lobe ID",
+            "type": "string",
+            "default": "",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_user7",
+            "riopt": "lpe:user7",
+            "label": "User 7 Lobe ID",
+            "type": "string",
+            "default": "",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_user8",
+            "riopt": "lpe:user8",
+            "label": "User 8 Lobe ID",
+            "type": "string",
+            "default": "",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_user9",
+            "riopt": "lpe:user9",
+            "label": "User 9 Lobe ID",
+            "type": "string",
+            "default": "",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_user10",
+            "riopt": "lpe:user10",
+            "label": "User 10 Lobe ID",
+            "type": "string",
+            "default": "",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_user11",
+            "riopt": "lpe:user11",
+            "label": "User 11 Lobe ID",
+            "type": "string",
+            "default": "",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_user12",
+            "riopt": "lpe:user12",
+            "label": "User 12 Lobe ID",
+            "type": "string",
+            "default": "",
+            "help": ""
+        },      
+        {
+            "panel": "RENDER_PT_renderman_workspace",
+            "page": "",
+            "name": "root_path_output",
+            "label": "Output Path",
+            "type": "string",
+            "default": "<TEMP>/renderman_for_blender/<blend>",
+            "widget": "dirinput",
+            "help": "The root path for all generated files for the scene. Can be referenced using the <OUT> token in other paths. Note this is different than Blender's Output path."                   
+        },           
+        {
+            "panel": "RENDER_PT_renderman_workspace",
+            "page": "",
+            "name": "path_rib_output",
+            "label": "RIB Output Path",
+            "type": "string",
+            "default": "<OUT>/rib/v<version>_t<take>/<scene>.<layer>.<F4>.rib",
+            "widget": "fileinput",
+            "help": "Path to generated RIB files"                   
+        },    
+        {
+            "panel": "RENDER_PT_renderman_workspace",
+            "page": "",
+            "name": "path_beauty_image_output",
+            "label": "Beauty Image Output Path",
+            "type": "string",
+            "default": "<OUT>/images/v<version>_t<take>/<scene>.<layer>.<F4>.<ext>",
+            "widget": "fileinput",
+            "help": "Path for the beauty image"                   
+        },  
+        {
+            "panel": "RENDER_PT_renderman_workspace",
+            "page": "",
+            "name": "path_aov_image_output",
+            "label": "AOV Image Output Path",
+            "type": "string",
+            "default": "<OUT>/images/v<version>_t<take>/<scene>.<layer>.<aov>.<F4>.<ext>",
+            "widget": "fileinput",
+            "help": "Path for the beauty image"                   
+        },  
+        {
+            "panel": "RENDER_PT_renderman_workspace",
+            "page": "",
+            "name": "statistics_xmlfilename",
+            "riopt": "statistics:xmlfilename",
+            "label": "XML Filename",
+            "type": "string",
+            "widget": "fileinput",
+            "default": "<OUT>/stats.<F4>.xml"
+        },        
+        {
+            "panel": "RENDER_PT_renderman_workspace",
+            "page": "",
+            "name": "path_bake_illum_ptc",
+            "label": "Bake 3D Illumination Output Path",
+            "type": "string",
+            "default": "<OUT>/bake/v<version>_t<take>/<scene>.<layer>.<aov>.<F4>.<ext>",
+            "widget": "fileinput",
+            "help": "Path for bake illumation output point cloud files"                   
+        }, 
+        {
+            "panel": "RENDER_PT_renderman_workspace",
+            "page": "",
+            "name": "path_bake_illum_img",
+            "label": "Bake 2D Illumination Output Path",
+            "type": "string",
+            "default": "<OUT>/bake/v<version>_t<take>/<scene>.<layer>.<aov>.<F4>.<ext>",
+            "widget": "fileinput",
+            "help": "Path for bake illumation output texture files."                   
+        },                                           
+        {
+            "panel": "RENDER_PT_renderman_spooling_export_options",
+            "page": "",
+            "name": "spool_style",
+            "label": "Spool Style",
+            "type": "string",
+            "default": "batch",
+            "widget": "mapper",
+            "options": "Blender Batch:batch|RIB:rib",
+            "help": "Batch render style. Blender Batch will use blender in the background to render frames. RIB style will write out RIB files for each frame and then render."
+        },          
+        {
+            "panel": "RENDER_PT_renderman_spooling_export_options",
+            "page": "",
+            "name": "queuing_system",
+            "label": "Spool to",
+            "type": "string",
+            "default": "lq",
+            "widget": "mapper",
+            "options": "LocalQueue:lq|Tractor:tractor|None:none",
+            "help": "System to spool to. None will generate RIB files, but not spool a render."
+        },       
+        {
+            "panel": "RENDER_PT_renderman_spooling_export_options",
+            "page": "",
+            "name": "recover",
+            "label": "Enable Recovery",
+            "type": "int",
+            "default": 0,
+            "widget": "checkbox",
+            "help": "Attempt to resume render from a previous checkpoint (if possible)."
+        },                 
+        {
+            "panel": "RENDER_PT_renderman_spooling_export_options",
+            "page": "RIB Options",
+            "name": "rib_format",
+            "label": "RIB Format",
+            "type": "string",
+            "default": "binary",
+            "widget": "mapper",
+            "options": "ASCII:ASCII|Binary:binary",
+            "help": ""
+        },  
+        {
+            "panel": "RENDER_PT_renderman_spooling_export_options",
+            "page": "RIB Options",
+            "name": "rib_compression",
+            "label": "RIB Compression",
+            "type": "string",
+            "default": "none",
+            "widget": "mapper",
+            "options": "None:none|GZip:gzip",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_spooling_export_options",
+            "page": "",
+            "name": "custom_cmd",
+            "label": "Custom Render Commands",
+            "type": "string",
+            "default": "",
+            "help": "Inserts a string of custom command arguments into the render process"                   
+        },
+        {
+            "panel": "RENDER_PT_renderman_spooling_export_options",
+            "page": "",
+            "name": "denoise_cmd",
+            "label": "Custom Denoise Commands",
+            "type": "string",
+            "default": "",
+            "help": "Inserts a string of custom commands arguments into the denoising process, if selected"                   
+        },                              
+        {
+            "panel": "RENDER_PT_renderman_spooling_export_options",
+            "page": "",
+            "name": "denoise_gpu",
+            "label": "Use GPU for denoising",
+            "type": "int",
+            "default": 0,
+            "widget": "checkbox",
+            "help": "The denoiser will attempt to use the GPU (if available)"
+        }
+    ]
+}

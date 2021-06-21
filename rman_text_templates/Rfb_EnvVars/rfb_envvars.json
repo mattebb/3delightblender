@@ -1,0 +1,11 @@
+{
+    "$schema": "./schemas/rfbEnvVarsSchema.json",
+    "environment": {
+        "RFB_LOG_LEVEL": {
+            "value": "DEBUG"
+        },
+        "RFB_SITE_PATH": {
+            "value": "/path/to/rfb_config_files"
+        }
+    }
+}

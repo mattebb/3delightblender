@@ -1,0 +1,9 @@
+{
+    "name": "PxrCryptomatte.args",
+    "params": [
+        {
+            "name": "filename",
+            "default": "<OUT>/images/v<version>_t<take>/<scene>.<layer>.cryptomatte.<F4>.exr"
+        }                    
+    ]
+}

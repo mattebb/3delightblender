@@ -1,0 +1,14 @@
+{
+    "name": "rman_properties_scene",
+    "params": [
+        {
+            "panel": "RENDER_PT_renderman_custom_options",
+            "name": "user_foobar",
+            "label": "FooBar",
+            "riopt": "user:foobar",
+            "type": "int",
+            "default": 0,
+            "help": "This is a new user option named foobar"
+        }        
+    ]
+}

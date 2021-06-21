@@ -1,0 +1,9 @@
+{
+    "name": "PxrStylizedControl.oso",
+    "params": [
+        {
+            "name": "Version",    
+            "connectable": false
+        }                                
+    ]
+}

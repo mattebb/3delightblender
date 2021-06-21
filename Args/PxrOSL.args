@@ -24,5 +24,5 @@
     </output>
 
     <rfmdata nodeid="1053418"
-        classification="rendernode/RenderMan/pattern"/>
+        classification="rendernode/RenderMan/pattern/script"/>
 </args>

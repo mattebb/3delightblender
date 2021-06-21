@@ -1,0 +1,11 @@
+{
+    "name": "PxrProjector.oso",
+    "params": [
+        {
+            "name": "traceSet",    
+            "widget": "propSearch",
+            "options": "prop_parent:context.scene.renderman|prop_name:object_groups",
+            "connectable": false
+        }                    
+    ]
+}

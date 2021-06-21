@@ -1,0 +1,124 @@
+{
+    "name": "rman_properties_curve",
+    "params": [
+        {
+            "panel": "CURVE_PT_renderman_curve_attrs",            
+            "name": "rman_smoothnormals",
+            "primvar": "polygon:smoothnormals",
+            "label": "Smooth Normals",
+            "type": "int",
+            "editable": true,
+            "default": 0,
+            "widget": "checkBox",
+            "page": "Polygons",
+            "help": "Render polygons with smooth normals."
+        },           
+        {
+            "panel": "CURVE_PT_renderman_curve_attrs",            
+            "name": "rman_preventPolyCracks",
+            "primvar": "polygon:smoothdisplacement",
+            "label": "Prevent polygon cracking",
+            "type": "int",
+            "editable": true,
+            "default": 0,
+            "widget": "checkBox",
+            "page": "Polygons",
+            "help": "Prevent polygon cracks on sharp edges, as long as both sides of the edge have similar displacement values, at the cost of slightly warping your displacement."
+        },        
+        {
+            "panel": "CURVE_PT_renderman_curve_attrs",
+            "name": "rman_subdiv_scheme",
+            "label": "Scheme",
+            "type": "string",
+            "editable": true,
+            "default": "none",
+            "widget": "mapper",            
+            "options": "None:none|Catmull-Clark:catmull-clark|Loop:loop|Bilinear:bilinear",
+            "page": "Subdivision Mesh"
+        },        
+        {
+            "panel": "CURVE_PT_renderman_curve_attrs",
+            "name": "rman_watertight",
+            "primvar": "dice:watertight",
+            "label": "Water-tight dicing",
+            "type": "int",
+            "editable": true,
+            "default": 0,
+            "widget": "mapper",
+            "options": "Yes:1|No:0",
+            "page": "Subdivision Mesh",
+            "help": "Fix pin-holes in Subdivision Surfaces.<br>It may slow down dicing and time to first pixel.",
+            "conditionalVisOps": {
+                "conditionalVisOp": "notEqualTo",
+                "conditionalVisPath": "rman_subdiv_scheme",
+                "conditionalVisValue": "none"
+            }
+        },
+        {
+            "panel": "CURVE_PT_renderman_curve_attrs",
+            "name": "rman_subdivInterp",
+            "label": "Interpolation",
+            "type": "int",
+            "editable": true,
+            "default": 1,
+            "widget": "mapper",
+            "options": "No interpolation:0|Sharp creases and corners:1|Sharp creases:2",
+            "page": "Subdivision Mesh",
+            "conditionalVisOps": {
+                "conditionalVisOp": "notEqualTo",
+                "conditionalVisPath": "rman_subdiv_scheme",
+                "conditionalVisValue": "none"
+            }
+        },
+        {
+            "panel": "CURVE_PT_renderman_curve_attrs",
+            "name": "rman_subdivFacevaryingInterp",
+            "label": "Face-Varying Interpolation",
+            "type": "int",
+            "editable": true,
+            "default": 3,
+            "widget": "mapper",
+            "options": "Old Style:0|New Style:1|New Style, no corners:2|New Style, internal only:3",
+            "page": "Subdivision Mesh",
+            "conditionalVisOps": {
+                "conditionalVisOp": "notEqualTo",
+                "conditionalVisPath": "rman_subdiv_scheme",
+                "conditionalVisValue": "none"
+            }
+        },
+        {
+            "panel": "CURVE_PT_renderman_prim_vars",
+            "name": "export_default_uv",
+            "label": "Export Default UV",
+            "type": "int",
+            "editable": true,
+            "default": 1,
+            "widget": "checkbox",
+            "help": "Export the active UV set as the default 'st' primitive variable",
+            "page": ""
+        },
+        {
+            "panel": "CURVE_PT_renderman_prim_vars",
+            "name": "export_default_vcol",
+            "label": "Export Default Vertex Color",
+            "type": "int",
+            "editable": true,
+            "default": 1,
+            "widget": "checkbox",
+            "help": "Export the active Vertex Color set as the default 'Cs' primitive variable",
+            "page": ""
+        },     
+        {
+            "panel": "CURVE_PT_renderman_prim_vars",
+            "name": "curve_widthaffectscurvature",
+            "primvar": "curve:widthaffectscurvature", 
+            "label": "Width Affects Curvature",
+            "type": "int",
+            "editable": true,
+            "default": 1,
+            "widget": "checkbox",
+            "help": "When true the curve width of round curves is taken into account in the computation of the tube curvature, otherwise only the curvature along the curve is. This control does not affect curve ribbons.",
+            "page": ""
+        }        
+    ]
+}

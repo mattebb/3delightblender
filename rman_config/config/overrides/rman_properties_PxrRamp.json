@@ -1,0 +1,22 @@
+{
+    "name": "PxrRamp.oso",
+    "params": [
+        {
+            "name": "useNewRamp",    
+            "widget": "__REMOVE__",
+            "default": "1"
+        },
+        {
+            "name": "positions",    
+            "widget": "__REMOVE__"
+        },        
+        {
+            "name": "colors",    
+            "widget": "__REMOVE__"
+        },
+        {
+            "name": "basis",    
+            "widget": "__REMOVE__"
+        }                                 
+    ]
+}
